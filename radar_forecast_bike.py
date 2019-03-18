@@ -120,7 +120,7 @@ ax = plt.gca()
 
 # Create the labels including the original datetime and a sum of the rain
 deltas_string   = [delta.strftime('%H:%M') for delta in np.array(datestring)[np.array(shifts)]]
-sums_string     = ['%4.2f mm' % value for value in rain_bike.sum(axis=1)]
+sums_string     = ['%4.2f mm' % value for value in rain_bike.sum(axis=1)*(5./60.)]
 labels          = ['start '+m+', tot. '+n for m,n in zip(deltas_string, sums_string)]
 # Since timedelta objects are not correctly handled by matplotlib
 # we need to do this converstion manually
