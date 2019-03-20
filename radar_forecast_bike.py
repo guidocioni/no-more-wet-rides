@@ -28,7 +28,7 @@ def read_input(track_file):
     longitude (df.X) and latitude (df.Y) of the track.
     You can easily convert GPX tracks to CSV online 
     """
-    df = pd.read_csv(track_file[0])
+    df = pd.read_csv(track_file)
     time_bike = pd.to_datetime(df.time.values)
     dtime_bike = time_bike - time_bike[0]
     # dtime_bike is a timedelta object!
@@ -151,8 +151,6 @@ def make_plot(time_radar, rain_bike, dtime_bike, out_filename=None):
 
 
 def extract_rain_rate_from_radar(time_radar, dtime_radar, lon_bike, lat_bike, time_bike, dtime_bike, lon_radar, lat_radar, rr):
-    Nt_bike = len(lon_bike)
-
     # Compute the rain at the bike position
     rain_bike=np.empty(shape=(0, len(dtime_bike))) # Initialize the array
 
@@ -176,14 +174,7 @@ def extract_rain_rate_from_radar(time_radar, dtime_radar, lon_bike, lat_bike, ti
     return rain_bike
 
 
-if __name__ == "__main__":
-    if not sys.argv[1:]:
-        print('Track file not defined, falling back to default')
-        track_file = 'track_points_return.csv'
-    else:    
-        track_file = sys.argv[1:]
-
-
+def main(track_file, plot_filename='plot.png'):
     lon_bike, lat_bike, time_bike, dtime_bike = read_input(track_file)
 
     lon_radar, lat_radar, time_radar, dtime_radar, rr = get_radar_data()
@@ -194,4 +185,14 @@ if __name__ == "__main__":
             lon_radar=lon_radar, rr=rr)
 
     make_plot(time_radar=time_radar, rain_bike=rain_bike, dtime_bike=dtime_bike,
-              out_filename='plot.png')
+              out_filename=plot_filename)
+
+
+if __name__ == "__main__":
+    if not sys.argv[1:]:
+        print('Track file not defined, falling back to default')
+        track_file = 'track_points_return.csv'
+    else:
+        track_file = sys.argv[1]
+
+    main(track_file)
