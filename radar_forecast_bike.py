@@ -1,5 +1,4 @@
 import pandas as pd
-import wradlib as wrl
 import numpy as np
 import os
 import requests
@@ -8,6 +7,8 @@ import tarfile
 import sys
 import calendar
 import re
+import pickle
+import radolan as radar
 
 from pathlib import Path
 
@@ -15,7 +16,7 @@ from pathlib import Path
 shifts = (1, 3, 5, 7, 9)
 # Folder to download the data (they will be removed 
 # but it needs some space to start with)
-data_path = Path("/tmp/nmwr_radar")
+data_path = Path("/Users/guidocioni/Downloads")
 
 # URL for the radar forecast, may change in the future
 URL_RADAR = "https://opendata.dwd.de/weather/radar/composit/fx/FX_LATEST.tar.bz2"
@@ -37,7 +38,6 @@ def read_input(track_file):
 
     return lon_bike, lat_bike, time_bike, dtime_bike
 
-
 def _utc_to_local(utc_dt):
     """Convert UTC time to local time"""
     # get integer timestamp to avoid precision lost
@@ -46,6 +46,15 @@ def _utc_to_local(utc_dt):
     assert utc_dt.resolution >= timedelta(microseconds=1)
     return local_dt.replace(microsecond=utc_dt.microsecond)
 
+def get_latlon_radar(file='radolan_grid.pickle'):
+    '''Get the lat/lon coordinates of RADOLAN from a file
+    so that we don't need to recreate them every time.
+    We need to evaluate whether pickle is the fastest choice.
+    Returns, in order, lon and lat 2-d arrays.'''
+    with open(file, 'rb') as handle:
+        radolan_grid_ll = pickle.load(handle)
+
+    return(radolan_grid_ll[:,:,0],radolan_grid_ll[:,:,1])
 
 def get_radar_data(remove_file=False):
     data_path.mkdir(exist_ok=True)
@@ -81,7 +90,7 @@ def get_radar_data(remove_file=False):
     datestring = []
 
     for fname in fnames:
-        rxdata, rxattrs = wrl.io.read_radolan_composite(fname)
+        rxdata, rxattrs = radar.read_radolan_composite(fname)
         data.append(np.ma.masked_equal(rxdata, -9999))
         minute = int(RADAR_FILENAME_REGEX.match(fname.name)['minutes'])
         datestring.append((rxattrs['datetime']+timedelta(minutes=minute)))
@@ -93,21 +102,17 @@ def get_radar_data(remove_file=False):
 
     # Convert to a masked array and use the right units
     data = np.ma.array(data)
-    dbz  = data/2. - 32.5 # Conversion from DWD RADOLAN
-    rr   = wrl.zr.z_to_r(wrl.trafo.idecibel(dbz), a=256, b=1.42) #mm/h
+    dbz  = data/2. - 32.5 
+    rr   = radar.z_to_r(radar.idecibel(dbz), a=256, b=1.42) #mm/h
 
     # Get coordinates (space/time)
-    radolan_grid_ll = wrl.georef.get_radolan_grid(900, 900, wgs84=True)
-    lon_radar       = radolan_grid_ll[:,:,0]
-    lat_radar       = radolan_grid_ll[:,:,1]
-    dtime_radar     = pd.to_datetime(datestring)-pd.to_datetime(datestring[0])
+    lon_radar, lat_radar = get_latlon_radar()
+    dtime_radar          = pd.to_datetime(datestring)-pd.to_datetime(datestring[0])
     # dtime_radar is a timedelta object! 
 
     time_radar = np.array([_utc_to_local(s) for s in  datestring])
 
     return lon_radar, lat_radar, time_radar, dtime_radar, rr
-
-
 
 def make_plot(time_radar, rain_bike, dtime_bike, out_filename=None):
     if out_filename:
