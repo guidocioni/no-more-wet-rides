@@ -60,37 +60,79 @@ def _utc_to_local(utc_dt):
     assert utc_dt.resolution >= timedelta(microseconds=1)
     return local_dt.replace(microsecond=utc_dt.microsecond)
 
+def download_unpack_file(radar_fn, data_path):
+    ''' Download the latest data from the server
+    and unpack it, returning the list of the 
+    extracted files.'''
+
+    response = requests.get(URL_RADAR)
+    # If file is not found raise an exception
+    response.raise_for_status()
+
+    # Write the file in the specified folder
+    with open(radar_fn, 'wb') as f:
+        f.write(response.content)
+
+    # Extract tar file
+    tar = tarfile.open(radar_fn, "r:bz2")
+    files = tar.getnames()
+    tar.extractall(data_path)
+    tar.close()
+
+    return sorted(files)
+
 def get_radar_data(data_path, remove_file=False):
+    ''' Get the file from the server, if it's not already downloaded.
+    In order to decide whether we need to download the file or not we
+    have to check (1) if the file exists (2) if it exists, is it the
+    most recent one. The check (2) for now only compares the size of
+    the local and remote file. This should work in most of the cases
+    but it's not 100% correct.'''
+
     data_path.mkdir(exist_ok=True)
 
     radar_fn = data_path/'FX_LATEST.tar.bz2'
 
     if not radar_fn.exists():
+        files = download_unpack_file(radar_fn, data_path)
+
+    else: # the file exists 
+        # we have to get the remote size
+        # the request will be honored on the 
+        # DWD website (hopefully also in the future)
         response = requests.get(URL_RADAR)
-        # If file is not found raise an exception
-        response.raise_for_status()
+        remote_size = int(response.headers['Content-Length'])
+        local_size  = int(radar_fn.stat().st_size)
 
-        # Write the file in the specified folder
-        with open(radar_fn, 'wb') as f:
-            f.write(response.content)
+        if local_size != remote_size: # it means
+            # that the remote file changed so the local one is not 
+            # updated: we need to download the file again!
+            #
+            # First remove old files to make space for the new ones
+            radar_fn.unlink()
+            for file in data_path.glob("*_MF002"):
+                if file.exists():
+                    file.unlink()
 
-        # Extract tar file
-        tar = tarfile.open(radar_fn, "r:bz2")
-        files = sorted(tar.getnames())
-        tar.extractall(data_path)
-        tar.close()
+            files = download_unpack_file(radar_fn, data_path)
+            
+        else: # it means that the file exists and is the most recent version
+            files = sorted(data_path.glob("*_MF002"))
+            # we need sorted to make sure that the files are ordered in time
 
-        if remove_file:
-            os.remove(radar_fn)
-    else:
-        # We have to make sure that the files are sorted in time
-        files = sorted(data_path.glob("*_MF002"))
+    # If required remove the tar file, but that means that it will need to be
+    # downloaded next time....
+    if remove_file:
+        radar_fn.unlink()
 
-    #... and get the name of the extracted files
+    # finally get the name of the extracted files
     fnames=[data_path/str(file) for file in files]
-    ########################################################
 
-    ######## Read/process the data ###########
+    return process_radar_data(fnames, remove_file)
+
+def process_radar_data(fnames, remove_file):
+    '''From the names of the files return arrays where the data is 
+    concatenated. '''
     data = []
     datestring = []
 
