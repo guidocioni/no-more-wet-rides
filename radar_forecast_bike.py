@@ -10,6 +10,7 @@ shifts = (1, 3, 5, 7, 9)
 # Folder to download the data (they will be removed 
 # but it needs some space to start with)
 data_path = Path("/Users/guidocioni/Downloads")
+json = True 
 
 def make_plot(time_radar, rain_bike, dtime_bike, out_filename=None):
     if out_filename:
@@ -85,6 +86,11 @@ def main(track_file, plot_filename='plot.png'):
             lon_bike=lon_bike, lat_bike=lat_bike, dtime_bike=dtime_bike,
             time_bike=time_bike, dtime_radar=dtime_radar, lat_radar=lat_radar,
             lon_radar=lon_radar, rr=rr)
+
+    # convert to JSON
+    if json:
+        deltas_string   = [delta.strftime('%H:%M') for delta in np.array(time_radar)[np.array(shifts)]]
+        convert_to_json(rain_bike, dtime_bike, deltas_string, url='data.json')
 
     make_plot(time_radar=time_radar, rain_bike=rain_bike, dtime_bike=dtime_bike,
               out_filename=plot_filename)

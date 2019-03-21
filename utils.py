@@ -31,6 +31,9 @@ def read_input(track_file):
     else:
         sys.exit("Only .csv and .gpx files are supported")
 
+    # TODO, filter the track to have points that have a distance
+    # comparable to the radar grid spacing, because that's anyway
+    # the maximum resolution that we can achieve... 
     dtime_bike = time_bike - time_bike[0]
 
     return lon_bike, lat_bike, time_bike, dtime_bike
@@ -59,6 +62,10 @@ def _utc_to_local(utc_dt):
     local_dt  = datetime.fromtimestamp(timestamp)
     assert utc_dt.resolution >= timedelta(microseconds=1)
     return local_dt.replace(microsecond=utc_dt.microsecond)
+
+def convert_to_json(rain_bike, dtime_bike, deltas_string, url):
+    df = pd.DataFrame(data=rain_bike.T, index=dtime_bike, columns=deltas_string)
+    df.to_json(url, orient='split')
 
 def download_unpack_file(radar_fn, data_path):
     ''' Download the latest data from the server
