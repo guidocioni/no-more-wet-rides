@@ -72,20 +72,21 @@ def get_radar_data(remove_file=False):
 
         # Extract tar file
         tar = tarfile.open(radar_fn, "r:bz2")
-        files = tar.getnames()
+        files = sorted(tar.getnames())
         tar.extractall(data_path)
         tar.close()
 
         if remove_file:
             os.remove(radar_fn)
     else:
-        files = data_path.glob("*_MF002")
+        # We have to make sure that the files are sorted in time
+        files = sorted(data_path.glob("*_MF002"))
 
     #... and get the name of the extracted files
     fnames=[data_path/str(file) for file in files]
     ########################################################
 
-    ######## Read/process the data using wradlib ###########
+    ######## Read/process the data ###########
     data = []
     datestring = []
 
