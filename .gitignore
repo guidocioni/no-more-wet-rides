@@ -4,3 +4,4 @@ plot.png
 plot_example.png
 
 __pycache__/
+*.pyc

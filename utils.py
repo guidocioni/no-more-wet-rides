@@ -7,6 +7,7 @@ import tarfile
 import requests
 import os
 import numpy as np
+import sys
 
 # URL for the radar forecast, may change in the future
 URL_RADAR = "https://opendata.dwd.de/weather/radar/composit/fx/FX_LATEST.tar.bz2"
@@ -19,14 +20,37 @@ def read_input(track_file):
     longitude (df.X) and latitude (df.Y) of the track.
     You can easily convert GPX tracks to CSV online 
     """
-    df = pd.read_csv(track_file)
-    time_bike = pd.to_datetime(df.time.values)
+    if track_file.endswith('.csv'):
+        df = pd.read_csv(track_file)
+        time_bike = pd.to_datetime(df.time.values)
+        # dtime_bike is a timedelta object!
+        lon_bike = df.X.values
+        lat_bike = df.Y.values
+    elif track_file.endswith('.gpx'):
+        lon_bike, lat_bike, time_bike = gpx_parser(track_file)
+    else:
+        sys.exit("Only .csv and .gpx files are supported")
+
     dtime_bike = time_bike - time_bike[0]
-    # dtime_bike is a timedelta object!
-    lon_bike = df.X.values
-    lat_bike = df.Y.values
 
     return lon_bike, lat_bike, time_bike, dtime_bike
+
+def gpx_parser(track_file):
+    '''Parse lat, lon and time from a gpx file.
+    We'll have to check whether multiple segments/
+    tracks are a problem'''
+    lat=[]
+    lon=[]
+    time=[]
+    import gpxpy
+    gpx = gpxpy.parse(open(track_file))
+    for track in gpx.tracks:
+        for segment in track.segments:
+            for point in segment.points:
+                lat.append(point.latitude)
+                lon.append(point.longitude)
+                time.append(point.time.replace(tzinfo=None))
+    return(np.array(lon), np.array(lat), pd.to_datetime(time))
 
 def _utc_to_local(utc_dt):
     """Convert UTC time to local time"""
