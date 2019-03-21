@@ -1,0 +1,6 @@
+.*.sw*
+
+plot.png
+plot_example.png
+
+__pycache__/

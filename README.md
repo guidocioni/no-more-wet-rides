@@ -51,3 +51,10 @@ folder = "/Users/guidocioni/Downloads/"
 ```
 
 ---
+
+
+# Web app
+
+The local web app may be run with
+
+    > python webapp.py
