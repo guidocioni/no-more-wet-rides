@@ -498,3 +498,14 @@ def z_to_r(z, a=200., b=1.6):
         rainfall intensity in mm/h
     """
     return (z / a) ** (1. / b)
+
+def get_latlon_radar(file='radolan_grid.pickle'):
+    import pickle
+    '''Get the lat/lon coordinates of RADOLAN from a file
+    so that we don't need to recreate them every time.
+    We need to evaluate whether pickle is the fastest choice.
+    Returns, in order, lon and lat 2-d arrays.'''
+    with open(file, 'rb') as handle:
+        radolan_grid_ll = pickle.load(handle)
+
+    return(radolan_grid_ll[:,:,0],radolan_grid_ll[:,:,1])
