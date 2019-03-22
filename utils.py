@@ -96,8 +96,6 @@ def get_radar_data(data_path, remove_file=False):
     the local and remote file. This should work in most of the cases
     but it's not 100% correct.'''
 
-    data_path.mkdir(exist_ok=True)
-
     radar_fn = data_path/'FX_LATEST.tar.bz2'
 
     if not radar_fn.exists():
@@ -154,10 +152,12 @@ def process_radar_data(fnames, remove_file):
         for fname in fnames:
             os.remove(fname)
 
-    # Convert to a masked array and use the right units
+    # Convert to a masked array
+    # The conversion for mm/h is done afterwards to avoid memory usage
     data = np.ma.array(data)
-    dbz  = data/2. - 32.5 
-    rr   = radar.z_to_r(radar.idecibel(dbz), a=256, b=1.42) #mm/h
+    # dbz  = data/2. - 32.5 
+    # rr   = radar.z_to_r(radar.idecibel(dbz), a=256, b=1.42) #mm/h THIS IS CAUSING THE MEMORY LEAK <----------
+    rr = data
 
     # Get coordinates (space/time)
     lon_radar, lat_radar = radar.get_latlon_radar()

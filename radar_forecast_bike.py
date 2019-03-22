@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import sys
 import utils
+import radolan as radar
 
 from pathlib import Path
 
@@ -10,6 +11,8 @@ shifts = (1, 3, 5, 7, 9)
 # Folder to download the data (they will be removed 
 # but it needs some space to start with)
 data_path = Path("/tmp")
+data_path.mkdir(exist_ok=True)
+
 json = True 
 
 def make_plot(time_radar, rain_bike, dtime_bike, out_filename=None):
@@ -72,7 +75,11 @@ def extract_rain_rate_from_radar(time_radar, dtime_radar, lon_bike, lat_bike, ti
             # Finally append the subsetted value to the array
             temp.append(rr[ind_time+shift, indx, indy])
         # iterate over all the shifts
-        rain_bike=np.append(rain_bike, [temp], axis=0)
+        rain_bike = np.append(rain_bike, [temp], axis=0)
+        # convert to mm/h now on the smaller array, this was previously done in
+        # utils.py but was causing more memory usage
+        rain_bike = rain_bike/2. -32.5 #dbz
+        rain_bike = radar.z_to_r(radar.idecibel(rain_bike), a=256, b=1.42) # mm/h
 
     return rain_bike
 
@@ -94,7 +101,6 @@ def main(track_file, plot_filename='plot.png'):
 
     make_plot(time_radar=time_radar, rain_bike=rain_bike, dtime_bike=dtime_bike,
               out_filename=plot_filename)
-
 
 if __name__ == "__main__":
     if not sys.argv[1:]:
