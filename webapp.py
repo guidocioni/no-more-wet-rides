@@ -1,4 +1,4 @@
-from flask import Flask, send_file, request
+from flask import Flask, send_file, request, url_for
 from werkzeug import secure_filename
 
 import radar_forecast_bike
@@ -12,7 +12,7 @@ def home():
     <p>Upload your track CSV below</p>
     <html>
        <body>
-          <form action = "http://localhost:5000/make_plot" method = "POST" 
+          <form action = "/make_plot" method = "POST" 
              enctype = "multipart/form-data">
              <input type = "file" name = "file" />
              <input type = "submit"/>
