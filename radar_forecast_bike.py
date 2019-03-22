@@ -90,7 +90,7 @@ def main(track_file, plot_filename='plot.png'):
     # convert to JSON
     if json:
         deltas_string   = [delta.strftime('%H:%M') for delta in np.array(time_radar)[np.array(shifts)]]
-        convert_to_json(rain_bike, dtime_bike, deltas_string, url='data.json')
+        utils.convert_to_json(rain_bike, dtime_bike, deltas_string, url='data.json')
 
     make_plot(time_radar=time_radar, rain_bike=rain_bike, dtime_bike=dtime_bike,
               out_filename=plot_filename)
