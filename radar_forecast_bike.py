@@ -9,7 +9,7 @@ from pathlib import Path
 shifts = (1, 3, 5, 7, 9)
 # Folder to download the data (they will be removed 
 # but it needs some space to start with)
-data_path = Path("/Users/guidocioni/Downloads")
+data_path = Path("/tmp")
 json = True 
 
 def make_plot(time_radar, rain_bike, dtime_bike, out_filename=None):
