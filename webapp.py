@@ -1,4 +1,4 @@
-from flask import Flask, send_file, request, url_for
+from flask import Flask, send_file, request
 from werkzeug import secure_filename
 
 import radar_forecast_bike

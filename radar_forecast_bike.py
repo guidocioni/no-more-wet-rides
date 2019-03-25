@@ -44,9 +44,12 @@ def make_plot(time_radar, rain_bike, dtime_bike, out_filename=None):
     ax.fill_between(x, y1=7.6, y2=ax.get_ylim()[-1], alpha=0.3, color="teal")
     ax.set_xlim(left=x[0], right=x[-1])
     ax.set_ylim(bottom=0, top=rain_bike.max())
-    ax.annotate("Light", xy=(x[-20], .1), alpha=0.6)
-    ax.annotate("Moderate", xy=(x[-20], 2.6), alpha=0.6)
-    ax.annotate("Heavy", xy=(x[-20], 7.7), alpha=0.5)
+    if rain_bike.max() > 0.5:
+        ax.annotate("Light", xy=(x[-20], .1), alpha=0.6)
+    if rain_bike.max() > 3.0 :
+        ax.annotate("Moderate", xy=(x[-20], 2.6), alpha=0.6)
+    if rain_bike.max() > 8.0 :
+        ax.annotate("Heavy", xy=(x[-20], 7.7), alpha=0.5)
     plt.legend(labels, fontsize=7)
 
     if out_filename:
@@ -105,7 +108,7 @@ def main(track_file, plot_filename='plot.png'):
     fig = make_plot(time_radar=time_radar, rain_bike=rain_bike, dtime_bike=dtime_bike,
               out_filename=plot_filename)
 
-    return(fig)
+    return(fig, pd.DataFrame(data=rain_bike.T, index=dtime_bike, columns=deltas_string))
 
 if __name__ == "__main__":
     if not sys.argv[1:]:
