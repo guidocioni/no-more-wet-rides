@@ -58,7 +58,7 @@ def make_plot(time_radar, rain_bike, dtime_bike, out_filename=None):
     return(fig)
 
 
-def extract_rain_rate_from_radar(time_radar, dtime_radar, lon_bike, lat_bike, dtime_bike, lon_radar, lat_radar, rr):
+def extract_rain_rate_from_radar(lon_bike, lat_bike, dtime_bike, lon_radar, lat_radar, dtime_radar, rr):
     # Compute the rain at the bike position
     rain_bike=np.empty(shape=(0, len(dtime_bike))) # Initialize the array
 
@@ -79,7 +79,7 @@ def extract_rain_rate_from_radar(time_radar, dtime_radar, lon_bike, lat_bike, dt
             temp.append(rr[ind_time+shift, indx, indy])
         # iterate over all the shifts
         rain_bike = np.append(rain_bike, [temp], axis=0)
-
+                    
     # convert to mm/h now on the smaller array, this was previously done in
     # utils.py but was causing more memory usage
     rain_bike = rain_bike/2. -32.5 #dbz
@@ -93,10 +93,9 @@ def main(track_file, plot_filename='plot.png'):
 
     lon_radar, lat_radar, time_radar, dtime_radar, rr = utils.get_radar_data(data_path)
 
-    rain_bike = extract_rain_rate_from_radar(time_radar=time_radar,
-            lon_bike=lon_bike, lat_bike=lat_bike, dtime_bike=dtime_bike,
-            dtime_radar=dtime_radar, lat_radar=lat_radar,
-            lon_radar=lon_radar, rr=rr)
+    rain_bike = extract_rain_rate_from_radar(lon_bike=lon_bike, lat_bike=lat_bike,
+                    dtime_bike=dtime_bike, dtime_radar=dtime_radar, lat_radar=lat_radar,
+                    lon_radar=lon_radar, rr=rr)
 
     # convert to JSON
     if json:

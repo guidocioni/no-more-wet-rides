@@ -76,13 +76,12 @@ def distance_bike(lon_bike, lat_bike):
 
 	return(distance_km(lon_bike_shift, lon_bike[:-2], lat_bike_shift, lat_bike[:-2]).cumsum())
 
-def _utc_to_local(utc_dt):
-    """Convert UTC time to local time"""
-    # get integer timestamp to avoid precision lost
-    timestamp = calendar.timegm(utc_dt.timetuple())
-    local_dt  = datetime.fromtimestamp(timestamp)
-    assert utc_dt.resolution >= timedelta(microseconds=1)
-    return local_dt.replace(microsecond=utc_dt.microsecond)
+def convert_timezone(dt_from, from_tz='utc', to_tz='Europe/Berlin'):
+    """Convert between two timezones. dt_from needs to be a Timestamp 
+    object, don't know if it works otherwise."""
+    dt_to = dt_from.tz_localize(from_tz).tz_convert(to_tz)
+    # remove again the timezone information
+    return dt_to.tz_localize(None)
 
 def convert_to_json(rain_bike, dtime_bike, deltas_string, url):
     df = pd.DataFrame(data=rain_bike.T, index=dtime_bike, columns=deltas_string)
@@ -184,12 +183,8 @@ def process_radar_data(fnames, remove_file):
 
     # Get coordinates (space/time)
     lon_radar, lat_radar = radar.get_latlon_radar()
-    time_radar 	= pd.to_datetime(time_radar)
+    time_radar  = convert_timezone(pd.to_datetime(time_radar))
     dtime_radar = time_radar - time_radar[0]
     # dtime_radar is a timedelta object! 
-
-    #time_radar = np.array([_utc_to_local(s) for s in  datestring])
-    # Until I can fix the timezone conversion which should not depend on calendar 
-    
 
     return lon_radar, lat_radar, time_radar, dtime_radar, rr
