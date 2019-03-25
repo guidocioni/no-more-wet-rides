@@ -36,7 +36,7 @@ def read_input(track_file):
     # the maximum resolution that we can achieve... 
     dtime_bike = time_bike - time_bike[0]
 
-    return lon_bike, lat_bike, time_bike, dtime_bike
+    return lon_bike, lat_bike, dtime_bike
 
 def gpx_parser(track_file):
     '''Parse lat, lon and time from a gpx file.
@@ -54,6 +54,27 @@ def gpx_parser(track_file):
                 lon.append(point.longitude)
                 time.append(point.time.replace(tzinfo=None))
     return(np.array(lon), np.array(lat), pd.to_datetime(time))
+
+def distance_km(lon1, lon2, lat1, lat2):
+	'''Returns the distance (in km) between two array of points'''
+	radius = 6371 # km
+
+	dlat = np.deg2rad(lat2-lat1)
+	dlon = np.deg2rad(lon2-lon1)
+	a = np.sin(dlat/2) * np.sin(dlat/2) + np.cos(np.deg2rad(lat1)) \
+	    * np.cos(np.deg2rad(lat2)) * np.sin(dlon/2) * np.sin(dlon/2)
+	c = 2 * np.arctan2(np.sqrt(a), np.sqrt(1-a))
+	d = radius * c
+
+	return d
+
+def distance_bike(lon_bike, lat_bike):
+	'''Finds the distance (in km) from the starting point of the bike
+	track.'''
+	lon_bike_shift = np.roll(lon_bike, -1)[:-2] # Avoid taking the last point
+	lat_bike_shift = np.roll(lat_bike, -1)[:-2]
+
+	return(distance_km(lon_bike_shift, lon_bike[:-2], lat_bike_shift, lat_bike[:-2]).cumsum())
 
 def _utc_to_local(utc_dt):
     """Convert UTC time to local time"""
@@ -139,13 +160,13 @@ def process_radar_data(fnames, remove_file):
     '''From the names of the files return arrays where the data is 
     concatenated. '''
     data = []
-    datestring = []
+    time_radar = []
 
     for fname in fnames:
         rxdata, rxattrs = radar.read_radolan_composite(fname)
-        data.append(np.ma.masked_equal(rxdata, -9999))
+        data.append(rxdata)
         minute = int(RADAR_FILENAME_REGEX.match(fname.name)['minutes'])
-        datestring.append((rxattrs['datetime']+timedelta(minutes=minute)))
+        time_radar.append((rxattrs['datetime']+timedelta(minutes=minute)))
 
     if remove_file:
         # Remove the files since we don't need them anymore
@@ -153,17 +174,22 @@ def process_radar_data(fnames, remove_file):
             os.remove(fname)
 
     # Convert to a masked array
-    # The conversion for mm/h is done afterwards to avoid memory usage
-    data = np.ma.array(data)
-    # dbz  = data/2. - 32.5 
-    # rr   = radar.z_to_r(radar.idecibel(dbz), a=256, b=1.42) #mm/h THIS IS CAUSING THE MEMORY LEAK <----------
+    # The conversion to mm/h is done afterwards to avoid memory usage
+    data = np.array(data)
+    # Get rid of masking value, we have to check whether this cause problem
+    # In this case missing data is treated as 0 (no precip.). Masked arrays
+    # cause too many problems. 
+    data[data==-9999] = 0.
     rr = data
 
     # Get coordinates (space/time)
     lon_radar, lat_radar = radar.get_latlon_radar()
-    dtime_radar          = pd.to_datetime(datestring)-pd.to_datetime(datestring[0])
+    time_radar 	= pd.to_datetime(time_radar)
+    dtime_radar = time_radar - time_radar[0]
     # dtime_radar is a timedelta object! 
 
-    time_radar = np.array([_utc_to_local(s) for s in  datestring])
+    #time_radar = np.array([_utc_to_local(s) for s in  datestring])
+    # Until I can fix the timezone conversion which should not depend on calendar 
+    
 
     return lon_radar, lat_radar, time_radar, dtime_radar, rr

@@ -25,7 +25,7 @@ def make_plot(time_radar, rain_bike, dtime_bike, out_filename=None):
     ax = plt.gca()
 
     # Create the labels including the original datetime and a sum of the rain
-    deltas_string   = [delta.strftime('%H:%M') for delta in np.array(time_radar)[np.array(shifts)]]
+    deltas_string   = [delta.strftime('%H:%M') for delta in time_radar[np.array(shifts)]]
     sums_string     = ['%4.2f mm' % value for value in rain_bike.sum(axis=1)*(5./60.)]
     labels          = ['start '+m+', tot. '+n for m,n in zip(deltas_string, sums_string)]
     # Since timedelta objects are not correctly handled by matplotlib
@@ -55,8 +55,10 @@ def make_plot(time_radar, rain_bike, dtime_bike, out_filename=None):
     else:
         plt.show(block=True)
 
+    return(fig)
 
-def extract_rain_rate_from_radar(time_radar, dtime_radar, lon_bike, lat_bike, time_bike, dtime_bike, lon_radar, lat_radar, rr):
+
+def extract_rain_rate_from_radar(time_radar, dtime_radar, lon_bike, lat_bike, dtime_bike, lon_radar, lat_radar, rr):
     # Compute the rain at the bike position
     rain_bike=np.empty(shape=(0, len(dtime_bike))) # Initialize the array
 
@@ -69,38 +71,42 @@ def extract_rain_rate_from_radar(time_radar, dtime_radar, lon_bike, lat_bike, ti
             # the comparison quite easy!
             ind_time = np.argmin(np.abs(dtime_radar - dtime_b))
             # Find also the closest point in space between radar and the
-            # track from the bike
+            # track from the bike. Would be nice to compute the distance in km
+            # using utils.distance_km but this would be too slow!
             dist = np.sqrt((lon_radar-lon_b)**2+(lat_radar-lat_b)**2)
-            indx, indy=np.unravel_index(np.argmin(dist, axis=None), dist.shape)
+            indx, indy = np.unravel_index(np.argmin(dist, axis=None), dist.shape)
             # Finally append the subsetted value to the array
             temp.append(rr[ind_time+shift, indx, indy])
         # iterate over all the shifts
         rain_bike = np.append(rain_bike, [temp], axis=0)
-        # convert to mm/h now on the smaller array, this was previously done in
-        # utils.py but was causing more memory usage
-        rain_bike = rain_bike/2. -32.5 #dbz
-        rain_bike = radar.z_to_r(radar.idecibel(rain_bike), a=256, b=1.42) # mm/h
+
+    # convert to mm/h now on the smaller array, this was previously done in
+    # utils.py but was causing more memory usage
+    rain_bike = rain_bike/2. -32.5 #dbz
+    rain_bike = radar.z_to_r(radar.idecibel(rain_bike), a=256, b=1.42) # mm/h
 
     return rain_bike
 
 
 def main(track_file, plot_filename='plot.png'):
-    lon_bike, lat_bike, time_bike, dtime_bike = utils.read_input(track_file)
+    lon_bike, lat_bike, dtime_bike = utils.read_input(track_file)
 
     lon_radar, lat_radar, time_radar, dtime_radar, rr = utils.get_radar_data(data_path)
 
     rain_bike = extract_rain_rate_from_radar(time_radar=time_radar,
             lon_bike=lon_bike, lat_bike=lat_bike, dtime_bike=dtime_bike,
-            time_bike=time_bike, dtime_radar=dtime_radar, lat_radar=lat_radar,
+            dtime_radar=dtime_radar, lat_radar=lat_radar,
             lon_radar=lon_radar, rr=rr)
 
     # convert to JSON
     if json:
-        deltas_string   = [delta.strftime('%H:%M') for delta in np.array(time_radar)[np.array(shifts)]]
+        deltas_string   = [delta.strftime('%H:%M') for delta in time_radar[np.array(shifts)]]
         utils.convert_to_json(rain_bike, dtime_bike, deltas_string, url='data.json')
 
-    make_plot(time_radar=time_radar, rain_bike=rain_bike, dtime_bike=dtime_bike,
+    fig = make_plot(time_radar=time_radar, rain_bike=rain_bike, dtime_bike=dtime_bike,
               out_filename=plot_filename)
+
+    return(fig)
 
 if __name__ == "__main__":
     if not sys.argv[1:]:
