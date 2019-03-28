@@ -13,53 +13,7 @@ shifts = (1, 3, 5, 7, 9)
 data_path = Path("/tmp")
 data_path.mkdir(exist_ok=True)
 
-json = True 
-
-def make_plot(time_radar, rain_bike, dtime_bike, out_filename=None):
-    if out_filename:
-        import matplotlib
-        matplotlib.use("Agg")
-
-    import matplotlib.pyplot as plt
-    fig = plt.figure(figsize=(12,5))
-    ax = plt.gca()
-
-    # Create the labels including the original datetime and a sum of the rain
-    deltas_string   = [delta.strftime('%H:%M') for delta in time_radar[np.array(shifts)]]
-    sums_string     = ['%4.2f mm' % value for value in rain_bike.sum(axis=1)*(5./60.)]
-    labels          = ['start '+m+', tot. '+n for m,n in zip(deltas_string, sums_string)]
-    # Since timedelta objects are not correctly handled by matplotlib
-    # we need to do this converstion manually
-    x = dtime_bike.values.astype(float) / (60e9)
-
-    ax.plot(x, rain_bike.T, '-')
-    ax.spines['right'].set_visible(False)
-    ax.spines['top'].set_visible(False)
-    ax.xaxis.grid(True, ls='dashed')
-    ax.set_title("Radar forecast | Basetime "+time_radar[0].strftime("%Y%m%d %H:%M"))
-    ax.set_ylabel("$P$ [mm h$^{-1}$]")
-    ax.set_xlabel("Time from start [minutes]")
-    ax.fill_between(x, y1=0, y2=2.5, alpha=0.4, color="paleturquoise")
-    ax.fill_between(x, y1=2.5, y2=7.6, alpha=0.3, color="lightseagreen")
-    ax.fill_between(x, y1=7.6, y2=ax.get_ylim()[-1], alpha=0.3, color="teal")
-    ax.set_xlim(left=x[0], right=x[-1])
-    ax.set_ylim(bottom=0, top=rain_bike.max())
-    if rain_bike.max() > 0.5:
-        ax.annotate("Light", xy=(x[-20], .1), alpha=0.6)
-    if rain_bike.max() > 3.0 :
-        ax.annotate("Moderate", xy=(x[-20], 2.6), alpha=0.6)
-    if rain_bike.max() > 8.0 :
-        ax.annotate("Heavy", xy=(x[-20], 7.7), alpha=0.5)
-    plt.legend(labels, fontsize=7)
-
-    if out_filename:
-        plt.savefig(out_filename)
-        print("Wrote plot to `{}`".format(out_filename))
-    else:
-        plt.show(block=True)
-
-    return(fig)
-
+json = True
 
 def extract_rain_rate_from_radar(lon_bike, lat_bike, dtime_bike, lon_radar, lat_radar, dtime_radar, rr):
     # Compute the rain at the bike position
@@ -91,7 +45,7 @@ def extract_rain_rate_from_radar(lon_bike, lat_bike, dtime_bike, lon_radar, lat_
     return rain_bike
 
 
-def main(track_file, plot_filename='plot.png'):
+def main(track_file, plot_filename=None):
     lon_bike, lat_bike, dtime_bike = utils.read_input(track_file)
 
     lon_radar, lat_radar, time_radar, dtime_radar, rr = utils.get_radar_data(data_path)
@@ -105,10 +59,10 @@ def main(track_file, plot_filename='plot.png'):
         deltas_string   = [delta.strftime('%H:%M') for delta in time_radar[np.array(shifts)]]
         utils.convert_to_json(rain_bike, dtime_bike, deltas_string, url='data.json')
 
-    fig = make_plot(time_radar=time_radar, rain_bike=rain_bike, dtime_bike=dtime_bike,
-              out_filename=plot_filename)
-
-    return(fig, pd.DataFrame(data=rain_bike.T, index=dtime_bike, columns=deltas_string))
+    if plot_filename: # we go to matplotlib
+    	return(time_radar, rain_bike, dtime_bike, plot_filename)
+    else: # we go to Bokeh 
+    	return(pd.DataFrame(data=rain_bike.T, index=dtime_bike, columns=deltas_string))
 
 if __name__ == "__main__":
     if not sys.argv[1:]:
