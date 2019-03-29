@@ -25,26 +25,34 @@ def home():
 @server.route('/make_plot', methods = ['GET', 'POST'])
 def make_plot():
     if request.method == 'POST':
-        f = request.files['file']
-        track_filename = secure_filename(f.filename)
-        f.save(track_filename)
+        if request.files['file']:
+          f = request.files['file']
+          track_filename = secure_filename(f.filename)
+          f.save(track_filename)
+        else:
+          track_filename = 'track_points.csv'
 
         # obviously we should use a temporary file instead, otherwise multiple
         # parallel requests will overwrite the file from eachother...
         plot_filename = 'plot_example.png'
-        fig = plot_matplotlib.make_plot(
-              radar_forecast_bike.main(track_file=track_filename,plot_filename=plot_filename))
+        
+        df = radar_forecast_bike.main(track_file=track_filename)
+
+        fig = plot_matplotlib.make_plot(df, out_filename=plot_filename)
         
         return send_file(plot_filename)
 
 @server.route('/make_plot_bokeh', methods = ['GET', 'POST'])
 def make_plot_bokeh():
     if request.method == 'POST':
-        f = request.files['file']
-        track_filename = secure_filename(f.filename)
-        f.save(track_filename)
+        if request.files['file']:
+          f = request.files['file']
+          track_filename = secure_filename(f.filename)
+          f.save(track_filename)
+        else:
+          track_filename = 'track_points.csv'
 
-        df = radar_forecast_bike.main(track_file=track_filename, plot_filename=None) 
+        df = radar_forecast_bike.main(track_file=track_filename) 
 
         return plot_bokeh.create_plot(df)
         
