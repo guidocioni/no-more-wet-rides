@@ -1,4 +1,4 @@
-debug = True
+debug = False
 import pandas as pd
 import numpy as np
 import sys
@@ -16,17 +16,26 @@ data_path.mkdir(exist_ok=True)
 
 json = False
 
-def main(track_file):
+def main(track_file=None, start_point=None, end_point=None, mode=None):
     """
     Download and process the data. 
     """
     if not debug:
-        lon_bike,  lat_bike,  dtime_bike = utils.read_input(track_file)
-        lon_radar, lat_radar, time_radar, dtime_radar, rr = utils.get_radar_data(data_path)
+        if track_file:
+            lon_bike,  lat_bike,  dtime_bike = utils.read_input(track_file)
+            lon_radar, lat_radar, time_radar, dtime_radar, rr = utils.get_radar_data(data_path)
 
-        rain_bike = utils.extract_rain_rate_from_radar(lon_bike=lon_bike, lat_bike=lat_bike,
-                        dtime_bike=dtime_bike, dtime_radar=dtime_radar, lat_radar=lat_radar,
-                        lon_radar=lon_radar, rr=rr)
+            rain_bike = utils.extract_rain_rate_from_radar(lon_bike=lon_bike, lat_bike=lat_bike,
+                            dtime_bike=dtime_bike, dtime_radar=dtime_radar, lat_radar=lat_radar,
+                            lon_radar=lon_radar, rr=rr)
+
+        elif (start_point and end_point):
+            lon_bike,  lat_bike,  dtime_bike = utils.gmaps_parser(start_point=start_point, end_point=end_point, mode=mode)
+            lon_radar, lat_radar, time_radar, dtime_radar, rr = utils.get_radar_data(data_path)
+
+            rain_bike = utils.extract_rain_rate_from_radar(lon_bike=lon_bike, lat_bike=lat_bike,
+                            dtime_bike=dtime_bike, dtime_radar=dtime_radar, lat_radar=lat_radar,
+                            lon_radar=lon_radar, rr=rr)
 
         df = utils.convert_to_dataframe(rain_bike, dtime_bike, time_radar)
     else:

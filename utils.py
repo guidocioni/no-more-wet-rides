@@ -57,6 +57,24 @@ def gpx_parser(track_file):
                 time.append(point.time.replace(tzinfo=None))
     return np.array(lon), np.array(lat), pd.to_datetime(time)
 
+def gmaps_parser(start_point="Feuerbergstrasse 6, Hamburg",
+                 end_point="Bundesstrasse 53, Hamburg", mode="bicycling"):
+    """
+    Obtain the track using the google maps api
+    """
+    from googlemaps import Client
+    api_key = os.environ['MAPS_API_KEY']
+    gmaps = Client(api_key)
+    directions = gmaps.directions(start_point, end_point, mode=mode)
+
+    lat_bike = np.array([step['start_location']['lat'] for step in directions[0]['legs'][0]['steps']])
+    lon_bike = np.array([step['start_location']['lng'] for step in directions[0]['legs'][0]['steps']])
+    time = np.array([step['duration']['value'] for step in directions[0]['legs'][0]['steps']])
+    dtime_bike = np.cumsum(pd.to_timedelta(time, unit='s'))
+
+    return lon_bike, lat_bike, dtime_bike
+
+
 def distance_km(lon1, lon2, lat1, lat2):
 	'''Returns the distance (in km) between two array of points'''
 	radius = 6371 # km
