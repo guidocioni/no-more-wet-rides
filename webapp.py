@@ -39,50 +39,50 @@ def home():
 
 @server.route('/make_plot', methods = ['GET', 'POST'])
 def make_plot():
-    if request.method == 'POST':
-        if request.files['file']:
-          f = request.files['file']
-          track_filename = secure_filename(f.filename)
-          f.save(track_filename)
-        else:
-          track_filename = 'track_points.csv'
+  if request.method == 'POST':
+    if request.files['file']:
+      f = request.files['file']
+      track_filename = secure_filename(f.filename)
+      f.save(track_filename)
+    else:
+      track_filename = 'track_points.csv'
 
-        # obviously we should use a temporary file instead, otherwise multiple
-        # parallel requests will overwrite the file from eachother...
-        plot_filename = 'plot_example.png'
-        
-        df = radar_forecast_bike.main(track_file=track_filename)
+    # obviously we should use a temporary file instead, otherwise multiple
+    # parallel requests will overwrite the file from eachother...
+    plot_filename = 'plot_example.png'
 
-        fig = plot_matplotlib.make_plot(df, out_filename=plot_filename)
-        
-        return send_file(plot_filename)
+    df = radar_forecast_bike.main(track_file=track_filename)
+
+    fig = plot_matplotlib.make_plot(df, out_filename=plot_filename)
+
+    return send_file(plot_filename)
 
 @server.route('/make_plot_gmaps', methods = ['GET', 'POST'])
 def make_plot_gmaps():
-    if request.method == 'POST':
-        if (request.form.get("start_point") and request.form.get("end_point")):
-          start_point = request.form.get("start_point")
-          end_point = request.form.get("end_point")
-          mode = request.form.get("selectMean")
+  if request.method == 'POST':
+    if (request.form.get("start_point") and request.form.get("end_point")):
+      start_point = request.form.get("start_point")
+      end_point = request.form.get("end_point")
+      mode = request.form.get("selectMean")
 
-          df = radar_forecast_bike.main(start_point=start_point, end_point=end_point, mode=mode)
+      df = radar_forecast_bike.main(start_point=start_point, end_point=end_point, mode=mode)
 
-    return plot_bokeh.create_plot(df)
+      return plot_bokeh.create_plot(df)
 
 @server.route('/make_plot_file', methods = ['GET', 'POST'])
 def make_plot_file():
   if request.method == 'POST':
-      if request.files['file']:
-        f = request.files['file']
-        track_filename = secure_filename(f.filename)
-        f.save(track_filename)
-      else:
-        track_filename = 'track_points.csv'
+    if request.files['file']:
+      f = request.files['file']
+      track_filename = secure_filename(f.filename)
+      f.save(track_filename)
+    else:
+      track_filename = 'track_points.csv'
 
-        df = radar_forecast_bike.main(track_file=track_filename)
+    df = radar_forecast_bike.main(track_file=track_filename)
 
-  return plot_bokeh.create_plot(df)
+    return plot_bokeh.create_plot(df)
         
 if __name__ == '__main__':
-    server.run(debug=True, use_reloader=True)
+  server.run(debug=True, use_reloader=True)
 

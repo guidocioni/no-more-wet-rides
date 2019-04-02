@@ -1,5 +1,4 @@
 import numpy as np
-from radar_forecast_bike import shifts
 
 def make_plot(df, out_filename=None):
     import matplotlib
@@ -17,7 +16,7 @@ def make_plot(df, out_filename=None):
     # we need to do this converstion manually
     x = df.index.values.astype(float)/(60e9)
 
-    ax.plot(x, df.T.values, '-')
+    ax.plot(x, df.values, '-')
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
     ax.xaxis.grid(True, ls='dashed')
@@ -28,12 +27,12 @@ def make_plot(df, out_filename=None):
     ax.fill_between(x, y1=2.5, y2=7.6, alpha=0.3, color="lightseagreen")
     ax.fill_between(x, y1=7.6, y2=ax.get_ylim()[-1], alpha=0.3, color="teal")
     ax.set_xlim(left=x[0], right=x[-1])
-    ax.set_ylim(bottom=0, top=df.max())
-    if df.max() > 0.5:
+    ax.set_ylim(bottom=0, top=df.values.max())
+    if df.values.max() > 0.5:
         ax.annotate("Light", xy=(x[-20], .1), alpha=0.6)
-    if df.max() > 3.0 :
+    if df.values.max() > 3.0 :
         ax.annotate("Moderate", xy=(x[-20], 2.6), alpha=0.6)
-    if df.max() > 8.0 :
+    if df.values.max() > 8.0 :
         ax.annotate("Heavy", xy=(x[-20], 7.7), alpha=0.5)
     plt.legend(labels, fontsize=7)
 

@@ -8,6 +8,11 @@ import os
 import numpy as np
 import sys
 
+from numba import jit
+
+# Here set the shifts (in units of 5 minutes per shift) for the final forecast
+shifts = (1, 3, 5, 7, 9)
+
 # URL for the radar forecast, may change in the future
 URL_RADAR = "https://opendata.dwd.de/weather/radar/composit/fx/FX_LATEST.tar.bz2"
 
@@ -213,8 +218,8 @@ def process_radar_data(fnames, remove_file):
 
     return lon_radar, lat_radar, time_radar, dtime_radar, rr
 
+@jit(nopython=True)
 def extract_rain_rate_from_radar(lon_bike, lat_bike, dtime_bike, lon_radar, lat_radar, dtime_radar, rr):
-    from radar_forecast_bike import shifts
     """
     Given the longitude, latitude and timedelta objects of the radar and of the bike iterate through 
     every point of the bike track and find closest point (in time/space) of the radar data. Then 
@@ -222,10 +227,8 @@ def extract_rain_rate_from_radar(lon_bike, lat_bike, dtime_bike, lon_radar, lat_
 
     Returns a numpy array with the rain forecast over the bike track.
     """
-    rain_bike=np.empty(shape=(0, len(dtime_bike))) # Initialize the array
-
-    ######## We need to speed up this LOOP !!! #################################
-    for shift in shifts:
+    rain_bike=np.empty(shape=(len(shifts), len(dtime_bike))) # Initialize the array
+    for i, shift in enumerate(shifts):
         temp = []
         for lat_b, lon_b, dtime_b in zip(lat_bike, lon_bike, dtime_bike):
             # Find the index where the two timedeltas object are the same,
@@ -234,25 +237,25 @@ def extract_rain_rate_from_radar(lon_bike, lat_bike, dtime_bike, lon_radar, lat_
             # the comparison quite easy!
             ind_time = np.argmin(np.abs(dtime_radar - dtime_b))
             # Find also the closest point in space between radar and the
-            # track from the bike. Would be nice to compute the distance in km
-            # using utils.distance_km but this would be too slow!
+            # track from the bike. 
             dist = np.sqrt((lon_radar-lon_b)**2+(lat_radar-lat_b)**2)
-            indx, indy = np.unravel_index(np.argmin(dist, axis=None), dist.shape)
+            indx, indy = dist.argmin()//dist.shape[1], dist.argmin()%dist.shape[1]
             # Finally append the subsetted value to the array
             temp.append(rr[ind_time+shift, indx, indy])
         # iterate over all the shifts
-        rain_bike = np.append(rain_bike, [temp], axis=0)
-    ############################################################################
+        rain_bike[i,:] = temp 
 
-    # convert to mm/h now on the smaller array, this was previously done in
-    # utils.py but was causing more memory usage
-    rain_bike = rain_bike/2. - 32.5 # to dbz 
-    rain_bike = radar.z_to_r(radar.idecibel(rain_bike), a=256, b=1.42) # to mm/h
-
+    #rain_bike = rain_bike/2. - 32.5 # to corrected units 
+    #rain_bike = 10. ** (rain_bike / 10.) # to dbz
+    #rain_bike = (rain_bike / 256.) ** (1. / 1.42) # to mm/h
+    # All together 
+    rain_bike = ((10. ** ((rain_bike/2. - 32.5) / 10.)) / 256.) ** (1. / 1.42)
+    # With functions but doesn't work with numba
+    #rain_bike = radar.z_to_r(radar.idecibel(rain_bike), a=256, b=1.42) # to mm/h
+    
     return rain_bike
 
 def convert_to_dataframe(rain_bike, dtime_bike, time_radar):
-    from radar_forecast_bike import shifts
     """
     Convert the forecast in a well-formatted dataframe which can then be plotted or converted 
     to another format.
@@ -262,7 +265,6 @@ def convert_to_dataframe(rain_bike, dtime_bike, time_radar):
     return df 
 
 def create_dummy_dataframe():
-    from radar_forecast_bike import shifts
     """
     Create a dummy dataframe useful for testing the app and the plot.
     """
