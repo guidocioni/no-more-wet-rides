@@ -19,9 +19,7 @@ This handy Python script uses the `RADOLAN` forecast product from DWD (https://w
 
 ## Example of usage 
 
-```shell
-> python radar_forecast_bike.py activity.gpx 
-```
+See the webapp execution hereinafter. The plotting now is only handled through the web application.
 
 ---
 
@@ -33,6 +31,7 @@ The script should work fine with both Python2 and Python3. You need the followin
 - matplotlib
 - requests
 - gpxpy
+- bokeh 
 
 All the other packages should already be installed in your Python distribution. 
 
@@ -45,7 +44,7 @@ You need to set the following variables before running
 shifts = (1, 3, 5, 7, 9)
 # Folder to download the data (they will be removed 
 # but it needs some space to start with)
-folder = "/Users/guidocioni/Downloads/"
+folder = "/tmp/"
 ```
 
 ---
