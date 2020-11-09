@@ -1,3 +1,6 @@
+
+> :warning: Oudated, see here https://github.com/guidocioni/no-more-wet-rides-new 
+
 # no-more-wet-rides 
 
 > A simple Python script to save your bike rides from the crappy german weather
