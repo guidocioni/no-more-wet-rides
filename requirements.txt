@@ -23,7 +23,7 @@ numpy==1.16.2
 olefile==0.46
 packaging==19.0
 pandas==0.23.4
-Pillow==5.4.1
+Pillow==7.1.0
 pycparser==2.19
 pyOpenSSL==19.0.0
 pyparsing==2.3.1
